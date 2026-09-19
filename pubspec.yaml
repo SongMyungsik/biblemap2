@@ -1,0 +1,48 @@
+name: biblemap2
+description: "Bible App with Map"
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3          # biblemap2의 최신 버전 유지
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # biblemap2 패키지
+  google_maps_flutter: ^2.5.0
+  cupertino_icons: ^1.0.8
+  # visionbible 패키지 추가
+  flutter_tts: ^3.8.5
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0        # 더 높은 버전 유지
+  flutter_launcher_icons: ^0.14.4  # 더 높은 버전 유지
+
+flutter:
+  uses-material-design: true
+  assets:
+    # biblemap2 assets
+    - assets/location.json
+    - assets/images/bible_map.png
+    - assets/images/top_image3.png  # ⚠️ 둘 중 하나만 (아래 주의사항 참고)
+    # visionbible assets 추가
+    - assets/visionbible.json
+    - assets/koreanbible.json
+    - assets/images/church_logo.png
+    - assets/images/top_image.png
+    # 폰트 추가
+  fonts:
+    - family: EzraSIL
+      fonts:
+        - asset: assets/fonts/SILEOT.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
