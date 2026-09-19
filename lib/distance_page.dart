@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart' show Factory;
-import 'package:flutter/gestures.dart' show EagerGestureRecognizer, OneSequenceGestureRecognizer;
+import 'package:flutter/gestures.dart'
+    show EagerGestureRecognizer, OneSequenceGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'map_page.dart'; // Location, getInitialConsonant 사용
@@ -133,6 +134,33 @@ class _DistancePageState extends State<DistancePage>
     }
   }
 
+  // 지명이 선택되면 버튼을 진한 색으로 채우고 지명 이름을 표시한다.
+  // active: 지금 지명을 고르는 중인 버튼 (테두리로 강조)
+  Widget _buildSlotButton({
+    required String emptyLabel,
+    required Location? location,
+    required Color color,
+    required bool active,
+    required VoidCallback onPressed,
+  }) {
+    final selected = location != null;
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: selected ? color : null,
+        foregroundColor: selected ? Colors.white : null,
+        side: BorderSide(
+          color: active ? color : Colors.transparent,
+          width: 2.5,
+        ),
+      ),
+      child: Text(
+        selected ? location.name : emptyLabel,
+        style: TextStyle(fontWeight: selected ? FontWeight.bold : null),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -144,24 +172,20 @@ class _DistancePageState extends State<DistancePage>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            _buildSlotButton(
+              emptyLabel: '1지명',
+              location: firstLocation,
+              color: Colors.blue.shade700,
+              active: selectingFirst,
               onPressed: () => setState(() => selectingFirst = true),
-              child: Text(
-                firstLocation != null
-                    ? firstLocation!
-                          .name // ✅ 선택된 지명 표시
-                    : "1지명", // ✅ 기본 안내
-              ),
             ),
             const SizedBox(width: 10),
-            ElevatedButton(
+            _buildSlotButton(
+              emptyLabel: '2지명',
+              location: secondLocation,
+              color: Colors.red.shade600,
+              active: !selectingFirst,
               onPressed: () => setState(() => selectingFirst = false),
-              child: Text(
-                secondLocation != null
-                    ? secondLocation!
-                          .name // ✅ 선택된 지명 표시
-                    : "2지명", // ✅ 기본 안내
-              ),
             ),
           ],
         ),
@@ -222,7 +246,9 @@ class _DistancePageState extends State<DistancePage>
           child: GoogleMap(
             // 지도를 끌 때 TabBarView 좌우 스와이프와 충돌하지 않도록 지도가 제스처를 우선 처리
             gestureRecognizers: {
-              Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+              Factory<OneSequenceGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
             },
             onMapCreated: (controller) => mapController = controller,
             initialCameraPosition: const CameraPosition(

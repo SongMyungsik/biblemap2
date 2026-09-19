@@ -18,8 +18,8 @@ class MapHubPage extends StatelessWidget {
             color: Theme.of(context).scaffoldBackgroundColor,
             child: const TabBar(
               tabs: [
-                Tab(icon: Icon(Icons.map), text: '성경 지도'),
-                Tab(icon: Icon(Icons.straighten), text: '거리 계산'),
+                Tab(text: '성경 지도'),
+                Tab(text: '거리 계산'),
               ],
             ),
           ),
