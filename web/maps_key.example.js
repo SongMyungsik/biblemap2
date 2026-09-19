@@ -1,0 +1,1 @@
+window.MAPS_API_KEY = 'YOUR_WEB_MAPS_API_KEY';

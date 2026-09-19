@@ -28,6 +28,12 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
+        // Maps API key lives in android/local.properties (gitignored) or the MAPS_API_KEY env var.
+        val localProps = java.util.Properties()
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { localProps.load(it) }
+        manifestPlaceholders["MAPS_API_KEY"] =
+            localProps.getProperty("MAPS_API_KEY") ?: System.getenv("MAPS_API_KEY") ?: ""
     }
 
     buildTypes {

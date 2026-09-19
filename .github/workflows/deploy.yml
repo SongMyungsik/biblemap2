@@ -27,6 +27,9 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Create web Maps key file from secret
+        run: echo "window.MAPS_API_KEY = '${{ secrets.MAPS_WEB_API_KEY }}';" > web/maps_key.js
+
       - run: flutter build web --release --base-href "/biblemap2/"
 
       - uses: actions/upload-pages-artifact@v3

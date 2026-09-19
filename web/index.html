@@ -32,7 +32,11 @@
 
   <title>biblemap2</title>
   <link rel="manifest" href="manifest.json">
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCUA5vYoHlRBrHiXpmsQMRl6CzwtRPXhfE"></script>
+  <!-- maps_key.js defines window.MAPS_API_KEY (gitignored; see maps_key.example.js) -->
+  <script src="maps_key.js"></script>
+  <script>
+    document.write('<script src="https://maps.googleapis.com/maps/api/js?key=' + window.MAPS_API_KEY + '"><\/script>');
+  </script>
 </head>
 
 <body>
