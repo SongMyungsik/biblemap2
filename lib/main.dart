@@ -12,7 +12,9 @@ import 'strong_code_cache.dart';
 import 'strong_code_page.dart';
 import 'vision_index_page.dart';
 import 'map_page.dart';
-import 'distance_page.dart';
+import 'map_hub_page.dart';
+import 'settings_page.dart';
+import 'app_settings.dart';
 import 'nav_state.dart';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -20,6 +22,7 @@ import 'nav_state.dart';
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppSettings.load();
   final String jsonString = await rootBundle.loadString('assets/location.json');
   final List<dynamic> jsonList = json.decode(jsonString);
   final List<Location> locations = jsonList
@@ -37,20 +40,23 @@ class BibleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '비전성경',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.purple),
-      home: const StartPage(),
-      onGenerateRoute: (settings) {
-        if (settings.name == '/bible') {
-          return MaterialPageRoute(
-            settings: settings, // ✅ '/bible' 이름 보존 → popUntil 정상 동작
-            builder: (_) => BibleHomePage(locations: locations),
-          );
-        }
-        return null;
-      },
+    return ListenableBuilder(
+      listenable: AppSettings.appColor,
+      builder: (context, _) => MaterialApp(
+        title: '비전성경',
+        debugShowCheckedModeBanner: false,
+        theme: buildAppTheme(AppSettings.appColor.value, Brightness.light),
+        home: const StartPage(),
+        onGenerateRoute: (settings) {
+          if (settings.name == '/bible') {
+            return MaterialPageRoute(
+              settings: settings, // ✅ '/bible' 이름 보존 → popUntil 정상 동작
+              builder: (_) => BibleHomePage(locations: locations),
+            );
+          }
+          return null;
+        },
+      ),
     );
   }
 }
@@ -100,8 +106,8 @@ class _BibleHomePageState extends State<BibleHomePage> {
   //   selectedIndex 0 → _otherPages[0] (홈)
   //   selectedIndex 2 → _otherPages[1] (성경검색)
   //   selectedIndex 3 → _otherPages[2] (용어목록)
-  //   selectedIndex 4 → _otherPages[3] (성경지도)
-  //   selectedIndex 5 → _otherPages[4] (거리계산)
+  //   selectedIndex 4 → _otherPages[3] (지도: 성경지도/거리계산 슬라이드)
+  //   selectedIndex 5 → _otherPages[4] (설정: 사용방법/설정 슬라이드)
   late final List<Widget> _otherPages;
 
   int get _otherPagesIndex {
@@ -142,11 +148,11 @@ class _BibleHomePageState extends State<BibleHomePage> {
   void initState() {
     super.initState();
     _otherPages = [
-      const StartPage(), // 0
+      const StartPage(embedded: true), // 0
       const BibleSearchPage(), // 1 (selectedIndex 2)
       const VisionIndexPage(), // 2 (selectedIndex 3)
-      MapPage(locations: widget.locations), // 3 (selectedIndex 4)
-      DistancePage(locations: widget.locations), // 4 (selectedIndex 5)
+      MapHubPage(locations: widget.locations), // 3 (selectedIndex 4)
+      const SettingsPage(), // 4 (selectedIndex 5)
     ];
     _initTts();
     _loadLastPosition();
@@ -176,25 +182,18 @@ class _BibleHomePageState extends State<BibleHomePage> {
       case 0:
         return '비전성경사전';
       case 1:
-        return '[개역개정]';
+        return '성경';
       case 2:
         return '성경 검색';
       case 3:
-        return '용어 목록';
+        return '용어사전';
       case 4:
-        return '성경 지명 지도';
+        return '지도';
       case 5:
-        return '지명 거리 계산';
+        return '설정';
       default:
         return '비전성경사전';
     }
-  }
-
-  Color get _appBarColor {
-    if (_selectedIndex == 4 || _selectedIndex == 5) {
-      return const Color.fromARGB(255, 220, 240, 255);
-    }
-    return const Color.fromARGB(255, 235, 245, 178);
   }
 
   // ── 탭 선택 ─────────────────────────────────────
@@ -360,22 +359,20 @@ class _BibleHomePageState extends State<BibleHomePage> {
   }
 
   // ── RichText 렌더링 ───────────────────────────────
-  Widget _buildVerseRichText(String verseText, int idx) {
+  Widget _buildVerseRichText(BuildContext ctx, String verseText, int idx) {
     final isHighlighted = _readingVerseIndex == idx;
     final parts = parseVerseText(verseText);
     final spans = <InlineSpan>[];
     for (final part in parts) {
       if (!part.isCode) {
-        spans.addAll(
-          _buildDictSpans(part.text, fontSize, isHighlighted, context),
-        );
+        spans.addAll(_buildDictSpans(part.text, fontSize, isHighlighted, ctx));
       } else {
         final code = part.text;
         spans.add(
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: GestureDetector(
-              onTap: () => StrongCodePage.navigate(context, code),
+              onTap: () => StrongCodePage.navigate(ctx, code),
               child: _buildCodeChip(code, isHighlighted),
             ),
           ),
@@ -406,7 +403,7 @@ class _BibleHomePageState extends State<BibleHomePage> {
           text: text,
           style: TextStyle(
             fontSize: fontSize,
-            color: Colors.black87,
+            color: isHighlighted ? Colors.black87 : ctx.textMain,
             backgroundColor: isHighlighted ? Colors.yellow[200] : null,
             height: 1.6,
           ),
@@ -478,7 +475,9 @@ class _BibleHomePageState extends State<BibleHomePage> {
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: FontWeight.bold,
-                  color: Colors.purple[700],
+                  color: isHighlighted
+                      ? Colors.purple[700]
+                      : (ctx.isDark ? Colors.purple[200] : Colors.purple[700]),
                   decoration: TextDecoration.underline,
                   decorationColor: Colors.purple[300],
                   backgroundColor: isHighlighted ? Colors.yellow[200] : null,
@@ -495,7 +494,7 @@ class _BibleHomePageState extends State<BibleHomePage> {
             text: text[cursor],
             style: TextStyle(
               fontSize: fontSize,
-              color: Colors.black87,
+              color: isHighlighted ? Colors.black87 : ctx.textMain,
               backgroundColor: isHighlighted ? Colors.yellow[200] : null,
               height: 1.6,
             ),
@@ -545,166 +544,253 @@ class _BibleHomePageState extends State<BibleHomePage> {
     );
   }
 
+  // 다크 모드는 성경 본문 화면에만 적용한다 (다른 화면은 항상 라이트)
+  Widget _buildThemedBibleBody() {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: AppSettings.themeMode,
+      builder: (context, mode, _) {
+        final dark =
+            mode == ThemeMode.dark ||
+            (mode == ThemeMode.system &&
+                MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+        if (!dark) return _buildBibleBody();
+        return Theme(
+          data: buildAppTheme(AppSettings.appColor.value, Brightness.dark),
+          child: Builder(
+            builder: (ctx) => ColoredBox(
+              color: Theme.of(ctx).scaffoldBackgroundColor,
+              child: _buildBibleBody(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── 개역개정 본문 위젯 (build()에서 직접 호출) ────
   // StatefulBuilder 없이 직접 렌더링 → setState() 즉시 반영
   Widget _buildBibleBody() {
     return SafeArea(
-      child: Column(
+      child: Stack(
         children: [
-          // 상단 컨트롤 바
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 8.0,
-              horizontal: 12.0,
+          _buildBibleColumn(),
+          // 장 이동: 반투명 플로팅 버튼 (하단 네비 바로 위, 좌우)
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: _buildFloatingChapterButton(
+              icon: Icons.arrow_back_ios_new,
+              color: Colors.blue,
+              onPressed: () => changeChapter(-1),
             ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: _buildFloatingChapterButton(
+              icon: Icons.arrow_forward_ios,
+              color: Colors.red,
+              onPressed: () => changeChapter(1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingChapterButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: color.withValues(alpha: 0.5),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: isLoading ? null : onPressed,
+        child: SizedBox(
+          width: 52,
+          height: 52,
+          child: Icon(icon, color: Colors.white, size: 24),
+        ),
+      ),
+    );
+  }
+
+  // 구약(창세기~말라기) / 신약(마태복음~요한계시록)
+  static const int _ntStartIndex = 39; // bookList에서 '마태복음'의 위치
+
+  bool get _isNewTestament => bookList.indexOf(selectedBook) >= _ntStartIndex;
+
+  List<String> get _testamentBooks => _isNewTestament
+      ? bookList.sublist(_ntStartIndex)
+      : bookList.sublist(0, _ntStartIndex);
+
+  void _selectTestament({required bool isNt}) {
+    if (_isNewTestament == isNt) return;
+    _stopAll();
+    setState(() {
+      selectedBook = bookList[isNt ? _ntStartIndex : 0]; // 마태복음 / 창세기
+      selectedChapter = 1;
+      loadVerses();
+    });
+    _saveLastPosition();
+  }
+
+  Widget _buildTestamentButton(String label, {required bool isNt}) {
+    final selected = _isNewTestament == isNt;
+    return ElevatedButton(
+      onPressed: () => _selectTestament(isNt: isNt),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        minimumSize: const Size(44, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        backgroundColor: selected ? Colors.purple : null,
+        foregroundColor: selected ? Colors.white : null,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+    );
+  }
+
+  Widget _buildBibleColumn() {
+    return Column(
+      children: [
+        // 상단 컨트롤 바
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+          child: Row(
+            children: [
+              _buildTestamentButton('구약', isNt: false),
+              const SizedBox(width: 6),
+              _buildTestamentButton('신약', isNt: true),
+              Expanded(
+                child: Slider(
+                  min: 12,
+                  max: 32,
+                  divisions: 20,
+                  label: fontSize.toStringAsFixed(0),
+                  value: fontSize,
+                  onChanged: (val) => setState(() => fontSize = val),
+                ),
+              ),
+              Text(
+                fontSize.toStringAsFixed(0),
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: _toggleChapterReading,
+                style: ElevatedButton.styleFrom(
+                  shape: const CircleBorder(),
+                  padding: EdgeInsets.zero,
+                  backgroundColor: _isReading ? Colors.red : Colors.green,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(36, 36),
+                ),
+                child: _isReading
+                    ? const Icon(Icons.stop, size: 20)
+                    : _isTtsBusy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.volume_up, size: 20),
+              ),
+            ],
+          ),
+        ),
+        // 책 / 장 드롭다운
+        Center(
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.95,
             child: Row(
               children: [
                 Expanded(
-                  child: Slider(
-                    min: 12,
-                    max: 32,
-                    divisions: 20,
-                    label: fontSize.toStringAsFixed(0),
-                    value: fontSize,
-                    onChanged: (val) => setState(() => fontSize = val),
-                  ),
-                ),
-                Text(
-                  fontSize.toStringAsFixed(0),
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _toggleChapterReading,
-                  style: ElevatedButton.styleFrom(
-                    shape: const CircleBorder(),
-                    padding: EdgeInsets.zero,
-                    backgroundColor: _isReading ? Colors.red : Colors.green,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(36, 36),
-                  ),
-                  child: _isReading
-                      ? const Icon(Icons.stop, size: 20)
-                      : _isTtsBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                  flex: 2,
+                  child: DropdownButtonFormField<String>(
+                    key: ValueKey(selectedBook),
+                    initialValue: selectedBook,
+                    items: _testamentBooks
+                        .map(
+                          (book) =>
+                              DropdownMenuItem(value: book, child: Text(book)),
                         )
-                      : const Icon(Icons.volume_up, size: 20),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: isLoading ? null : () => changeChapter(-1),
-                  style: ElevatedButton.styleFrom(
-                    shape: const CircleBorder(),
-                    padding: EdgeInsets.zero,
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(36, 36),
+                        .toList(),
+                    onChanged: onBookChanged,
+                    style: const TextStyle(color: Colors.black87, fontSize: 16),
+                    dropdownColor: const Color.fromARGB(255, 194, 195, 250),
+                    iconEnabledColor: Colors.black54,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 194, 195, 250),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
                   ),
-                  child: const Icon(Icons.arrow_back_ios, size: 20),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: isLoading ? null : () => changeChapter(1),
-                  style: ElevatedButton.styleFrom(
-                    shape: const CircleBorder(),
-                    padding: EdgeInsets.zero,
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(36, 36),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: DropdownButtonFormField<int>(
+                    key: ValueKey('$selectedBook-$selectedChapter'),
+                    initialValue: selectedChapter,
+                    items: (chapterCount[selectedBook] ?? [1])
+                        .map(
+                          (ch) =>
+                              DropdownMenuItem(value: ch, child: Text('$ch장')),
+                        )
+                        .toList(),
+                    onChanged: onChapterChanged,
+                    style: const TextStyle(color: Colors.black87, fontSize: 16),
+                    dropdownColor: const Color.fromARGB(255, 193, 255, 193),
+                    iconEnabledColor: Colors.black54,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color.fromARGB(255, 193, 255, 193),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
                   ),
-                  child: const Icon(Icons.arrow_forward_ios, size: 20),
                 ),
               ],
             ),
           ),
-          // 책 / 장 드롭다운
-          Center(
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.95,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(selectedBook),
-                      initialValue: selectedBook,
-                      items: bookList
-                          .map(
-                            (book) => DropdownMenuItem(
-                              value: book,
-                              child: Text(book),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onBookChanged,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color.fromARGB(255, 194, 195, 250),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: DropdownButtonFormField<int>(
-                      key: ValueKey('$selectedBook-$selectedChapter'),
-                      initialValue: selectedChapter,
-                      items: (chapterCount[selectedBook] ?? [1])
-                          .map(
-                            (ch) => DropdownMenuItem(
-                              value: ch,
-                              child: Text('$ch장'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: onChapterChanged,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color.fromARGB(255, 193, 255, 193),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 성경 본문
-          Expanded(
-            child: verses.isEmpty
-                ? Center(
-                    child: Text('데이터 없음', style: TextStyle(fontSize: fontSize)),
-                  )
-                : ListView.builder(
-                    key: ValueKey('$selectedBook-$selectedChapter'),
-                    controller: _scrollController,
-                    itemCount: verses.length,
-                    itemBuilder: (context, idx) =>
-                        _buildVerseRichText(verses[idx], idx),
-                  ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        // 성경 본문
+        Expanded(
+          child: verses.isEmpty
+              ? Center(
+                  child: Text('데이터 없음', style: TextStyle(fontSize: fontSize)),
+                )
+              : ListView.builder(
+                  key: ValueKey('$selectedBook-$selectedChapter'),
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(bottom: 80),
+                  itemCount: verses.length,
+                  itemBuilder: (context, idx) =>
+                      _buildVerseRichText(context, verses[idx], idx),
+                ),
+        ),
+      ],
     );
   }
 
@@ -713,14 +799,9 @@ class _BibleHomePageState extends State<BibleHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: _appBarColor,
-        elevation: 0,
         title: Text(
           _appBarTitle,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
         actions: _selectedIndex == 1
@@ -739,27 +820,13 @@ class _BibleHomePageState extends State<BibleHomePage> {
 
       // ── body: 개역개정(1)은 직접 렌더, 나머지는 IndexedStack
       body: _selectedIndex == 1
-          ? _buildBibleBody()
+          ? _buildThemedBibleBody()
           : IndexedStack(index: _otherPagesIndex, children: _otherPages),
 
-      // ── BottomNav: 항상 5개 고정 ─────────────────
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: '개역개정'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: '성경검색'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sort_by_alpha),
-            label: '용어목록',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: '성경지도'),
-          BottomNavigationBarItem(icon: Icon(Icons.straighten), label: '거리계산'),
-        ],
+      // ── BottomNav: 항상 6개 고정 ─────────────────
+      bottomNavigationBar: AppBottomNav(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: const Color.fromARGB(255, 255, 53, 53),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }

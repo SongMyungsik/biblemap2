@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'strong_code_cache.dart';
 import 'nav_state.dart';
+import 'app_settings.dart';
 
 class StrongCodePage extends StatefulWidget {
   final String code;
@@ -87,10 +88,8 @@ class _StrongCodePageState extends State<StrongCodePage> {
         : Colors.purple[700]!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0FF),
+      backgroundColor: context.isDark ? null : const Color(0xFFF5F0FF),
       appBar: AppBar(
-        backgroundColor: appBarColor,
-        foregroundColor: Colors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -106,23 +105,9 @@ class _StrongCodePageState extends State<StrongCodePage> {
         ),
       ),
       body: _buildBody(appBarColor),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: '개역개정'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: '성경검색'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.sort_by_alpha),
-            label: '용어목록',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: '성경지도'),
-          BottomNavigationBarItem(icon: Icon(Icons.straighten), label: '거리계산'),
-        ],
-        currentIndex: 3, // 용어목록에서 진입하는 경우가 많아 3으로 표시
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: navDict, // 용어사전에서 진입하는 경우가 많아 용어사전으로 표시
         onTap: _onNavTap,
-        selectedItemColor: const Color.fromARGB(255, 255, 53, 53),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
@@ -281,7 +266,7 @@ class _Box extends StatelessWidget {
       width: double.infinity,
       constraints: BoxConstraints(minHeight: minHeight),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardBg,
         border: Border.all(color: accentColor.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
@@ -344,9 +329,9 @@ class _ErrorView extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: context.softBg,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: context.borderSoft),
             ),
             child: Text(
               body,

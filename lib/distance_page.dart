@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart' show EagerGestureRecognizer, OneSequenceGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'map_page.dart'; // Location, getInitialConsonant 사용
@@ -11,7 +13,11 @@ class DistancePage extends StatefulWidget {
   State<DistancePage> createState() => _DistancePageState();
 }
 
-class _DistancePageState extends State<DistancePage> {
+class _DistancePageState extends State<DistancePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   Location? firstLocation;
   Location? secondLocation;
   double? distance;
@@ -129,10 +135,37 @@ class _DistancePageState extends State<DistancePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final consonants = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅌ", "ㅎ"];
 
     return Column(
       children: [
+        // 1지명/2지명 선택 모드 전환 버튼 (초성 버튼 위)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () => setState(() => selectingFirst = true),
+              child: Text(
+                firstLocation != null
+                    ? firstLocation!
+                          .name // ✅ 선택된 지명 표시
+                    : "1지명", // ✅ 기본 안내
+              ),
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: () => setState(() => selectingFirst = false),
+              child: Text(
+                secondLocation != null
+                    ? secondLocation!
+                          .name // ✅ 선택된 지명 표시
+                    : "2지명", // ✅ 기본 안내
+              ),
+            ),
+          ],
+        ),
+
         // 초성 버튼
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -165,32 +198,6 @@ class _DistancePageState extends State<DistancePage> {
           ),
         ),
 
-        // 첫 번째/두 번째 지명 선택 모드 전환 버튼
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () => setState(() => selectingFirst = true),
-              child: Text(
-                firstLocation != null
-                    ? firstLocation!
-                          .name // ✅ 선택된 지명 표시
-                    : "첫 번째 지명 선택", // ✅ 기본 안내
-              ),
-            ),
-            const SizedBox(width: 10),
-            ElevatedButton(
-              onPressed: () => setState(() => selectingFirst = false),
-              child: Text(
-                secondLocation != null
-                    ? secondLocation!
-                          .name // ✅ 선택된 지명 표시
-                    : "두 번째 지명 선택", // ✅ 기본 안내
-              ),
-            ),
-          ],
-        ),
-
         // 선택된 지명 및 거리 표시 (한 줄, bold 처리)
         Padding(
           padding: const EdgeInsets.all(8.0),
@@ -213,6 +220,10 @@ class _DistancePageState extends State<DistancePage> {
         // 지도
         Expanded(
           child: GoogleMap(
+            // 지도를 끌 때 TabBarView 좌우 스와이프와 충돌하지 않도록 지도가 제스처를 우선 처리
+            gestureRecognizers: {
+              Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+            },
             onMapCreated: (controller) => mapController = controller,
             initialCameraPosition: const CameraPosition(
               target: LatLng(32.75315, 35.27383),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'app_settings.dart';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // BibleSearchPage  –  성경 본문 전체 검색
@@ -192,7 +193,7 @@ class _BibleSearchPageState extends State<BibleSearchPage> {
                 if (_searched)
                   Container(
                     width: double.infinity,
-                    color: Colors.grey.shade100,
+                    color: context.softBg,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 6,
@@ -205,7 +206,7 @@ class _BibleSearchPageState extends State<BibleSearchPage> {
                         fontSize: 13,
                         color: _results.isEmpty
                             ? Colors.red.shade400
-                            : Colors.grey.shade700,
+                            : context.textSub,
                       ),
                     ),
                   ),
@@ -254,9 +255,9 @@ class _BibleSearchPageState extends State<BibleSearchPage> {
                                   // 본문 (검색어 하이라이트)
                                   RichText(
                                     text: TextSpan(
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 15,
-                                        color: Colors.black87,
+                                        color: context.textMain,
                                         height: 1.5,
                                       ),
                                       children: _highlight(text),

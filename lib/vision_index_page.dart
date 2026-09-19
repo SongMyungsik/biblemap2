@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'strong_code_cache.dart';
 import 'strong_code_page.dart';
 import 'nav_state.dart';
+import 'app_settings.dart';
 
 class _Group {
   final String label;
@@ -108,7 +109,7 @@ class _VisionIndexPageState extends State<VisionIndexPage> {
   Widget build(BuildContext context) {
     final filtered = _filtered;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5FF),
+      backgroundColor: context.isDark ? null : const Color(0xFFF8F5FF),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -177,11 +178,8 @@ class _VisionGroupPageState extends State<VisionGroupPage> {
   Widget build(BuildContext context) {
     final filtered = _filtered;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5FF),
+      backgroundColor: context.isDark ? null : const Color(0xFFF8F5FF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5C3D99),
-        foregroundColor: Colors.white,
-        elevation: 0,
         title: Text(
           '"${widget.groupLabel}" 그룹',
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -202,21 +200,10 @@ class _VisionGroupPageState extends State<VisionGroupPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home),          label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu_book),     label: '개역개정'),
-          BottomNavigationBarItem(icon: Icon(Icons.search),        label: '성경검색'),
-          BottomNavigationBarItem(icon: Icon(Icons.sort_by_alpha), label: '용어목록'),
-          BottomNavigationBarItem(icon: Icon(Icons.map),           label: '성경지도'),
-          BottomNavigationBarItem(icon: Icon(Icons.straighten),    label: '거리계산'),
-        ],
-        currentIndex: 3,
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: navDict,
         // ✅ isFirst 조건 추가 → '/bible'을 못 찾아도 앱 중단 없음
         onTap: (index) => onNavTap(context, index),
-        selectedItemColor: const Color.fromARGB(255, 255, 53, 53),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
@@ -241,7 +228,7 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: context.cardBg,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,7 +329,7 @@ class _SearchResultList extends StatelessWidget {
                 Expanded(
                   child: RichText(
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.black87),
+                      style: TextStyle(color: context.textMain),
                       children: [
                         TextSpan(
                           text: e.word.isNotEmpty ? e.word : '-',
@@ -406,12 +393,16 @@ class _GroupGrid extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: count == 0
-                    ? Colors.grey[100]
-                    : Colors.purple.withValues(alpha: 0.12),
+                    ? context.softBg
+                    : (context.isDark
+                        ? Colors.purple.shade200.withValues(alpha: 0.55)
+                        : Colors.purple.withValues(alpha: 0.12)),
                 border: Border.all(
                   color: count == 0
-                      ? Colors.grey.shade300
-                      : Colors.purple.withValues(alpha: 0.5),
+                      ? context.borderSoft
+                      : (context.isDark
+                          ? Colors.purple.shade100
+                          : Colors.purple.withValues(alpha: 0.5)),
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -421,7 +412,8 @@ class _GroupGrid extends StatelessWidget {
                     child: Text(group.label, style: TextStyle(
                       fontSize: 22, fontWeight: FontWeight.bold,
                       color: count == 0
-                          ? Colors.grey[400] : Colors.purple[700],
+                          ? Colors.grey[400]
+                          : (context.isDark ? Colors.white : Colors.purple[700]),
                     )),
                   ),
                   if (count > 0)
@@ -429,7 +421,9 @@ class _GroupGrid extends StatelessWidget {
                       right: 5, top: 4,
                       child: Text('$count', style: TextStyle(
                         fontSize: 10,
-                        color: Colors.purple.withValues(alpha: 0.7),
+                        color: context.isDark
+                            ? Colors.white70
+                            : Colors.purple.withValues(alpha: 0.7),
                       )),
                     ),
                 ],
@@ -461,17 +455,17 @@ class _ModeChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF5C3D99) : Colors.white,
+          color: selected ? const Color(0xFF5C3D99) : context.cardBg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
-                ? const Color(0xFF5C3D99) : Colors.grey.shade300,
+                ? const Color(0xFF5C3D99) : context.borderSoft,
           ),
         ),
         child: Text(label, style: TextStyle(
           fontSize: 13,
           fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-          color: selected ? Colors.white : Colors.grey.shade700,
+          color: selected ? Colors.white : context.textSub,
         )),
       ),
     );

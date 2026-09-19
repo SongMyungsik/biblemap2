@@ -1,4 +1,6 @@
 //import 'dart:convert';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart' show EagerGestureRecognizer, OneSequenceGestureRecognizer;
 import 'package:flutter/material.dart';
 //import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -67,7 +69,11 @@ class MapPage extends StatefulWidget {
   State<MapPage> createState() => _MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class _MapPageState extends State<MapPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   Location? selectedLocation;
   Set<Marker> markers = {};
   late GoogleMapController mapController;
@@ -116,6 +122,7 @@ class _MapPageState extends State<MapPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final consonants = ["ㄱ", "ㄴ", "ㄷ", "ㄹ", "ㅁ", "ㅂ", "ㅅ", "ㅇ", "ㅌ", "ㅎ"];
     return Column(
       children: [
@@ -162,6 +169,10 @@ class _MapPageState extends State<MapPage> {
           ),
         Expanded(
           child: GoogleMap(
+            // 지도를 끌 때 TabBarView 좌우 스와이프와 충돌하지 않도록 지도가 제스처를 우선 처리
+            gestureRecognizers: {
+              Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+            },
             onMapCreated: (controller) => mapController = controller,
             initialCameraPosition: const CameraPosition(
               target: LatLng(32.75315, 35.27383),
