@@ -23,16 +23,6 @@ class StartPage extends StatelessWidget {
             height: 159, // 높이 조절
           ),
           const SizedBox(height: 30),
-          Text(
-            '이 앱은 두란노서원 발행 <간추린 비전성경사전>의 \n성경 용어 3,000여개를 수록하였으며, 그 중에서 \n500여개의 성경 지명을 구글지도에서 확인할 수 있습니다. ',
-            style: TextStyle(
-              fontSize: 12.0, // 글자 크기를 크게 설정
-              //  fontWeight: FontWeight.bold,   // 글자를 굵게 설정
-              color: context.isDark
-                  ? const Color.fromARGB(255, 140, 170, 255)
-                  : const Color.fromARGB(255, 7, 3, 252),
-            ),
-          ),
           const SizedBox(height: 30),
           // 텍스트와 버튼 사이에 간격을 줍니다.
           const SizedBox(height: 20),

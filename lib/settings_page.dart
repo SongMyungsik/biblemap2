@@ -40,6 +40,13 @@ class _UsageTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: const [
         _UsageCard(
+          icon: Icons.info_outline,
+          title: '앱 소개',
+          lines: [
+            '이 앱은 두란노서원 발행 <간추린 비전성경사전>의 성경 용어 3,000여개를 수록하였으며, 그 중에서 500여개의 성경 지명을 구글지도에서 확인할 수 있습니다.',
+          ],
+        ),
+        _UsageCard(
           icon: Icons.menu_book,
           title: '성경',
           lines: [
@@ -124,7 +131,9 @@ class _UsageCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('•  '),
-                    Expanded(child: Text(line, style: const TextStyle(height: 1.4))),
+                    Expanded(
+                      child: Text(line, style: const TextStyle(height: 1.4)),
+                    ),
                   ],
                 ),
               ),
